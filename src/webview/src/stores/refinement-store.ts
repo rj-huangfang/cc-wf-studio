@@ -1,19 +1,19 @@
 /**
- * Claude Code Workflow Studio - Refinement State Store
+ * Claude Code Workflow Studio - 改进状态存储
  *
- * Zustand store for managing AI-assisted workflow refinement chat state
- * Based on: /specs/001-ai-workflow-refinement/quickstart.md Section 3.1
+ * 用于管理 AI 辅助工作流改进聊天状态的 Zustand 存储
+ * 基于: /specs/001-ai-workflow-refinement/quickstart.md Section 3.1
  */
 
 import type { ClaudeModel } from '@shared/types/messages';
 import type { ConversationHistory, ConversationMessage } from '@shared/types/workflow-definition';
 import { create } from 'zustand';
 
-// localStorage keys
+// localStorage 键
 const MODEL_STORAGE_KEY = 'cc-wf-studio.refinement.selectedModel';
 const ALLOWED_TOOLS_STORAGE_KEY = 'cc-wf-studio.refinement.allowedTools';
 
-// Available tools for Claude Code CLI (used in AI editing allowed tools)
+// Claude Code CLI 可用工具（用于 AI 编辑允许的工具）
 export const AVAILABLE_TOOLS = [
   'AskUserQuestion',
   'Bash',
@@ -35,8 +35,8 @@ export const AVAILABLE_TOOLS = [
   'Write',
 ] as const;
 
-// Official Claude Code tools for hooks matcher (PreToolUse, PostToolUse)
-// Based on: https://code.claude.com/docs/en/hooks
+// 官方 Claude Code 工具用于钩子匹配器（PreToolUse, PostToolUse）
+// 基于: https://code.claude.com/docs/en/hooks
 export const HOOKS_MATCHER_TOOLS = [
   'Bash',
   'BashOutput',
@@ -55,7 +55,7 @@ export const HOOKS_MATCHER_TOOLS = [
   'Write',
 ] as const;
 
-// Default allowed tools (read-only tools for security)
+// 默认允许的工具（只读工具以确保安全）
 export const DEFAULT_ALLOWED_TOOLS: string[] = [
   'Read',
   'Grep',
@@ -66,8 +66,8 @@ export const DEFAULT_ALLOWED_TOOLS: string[] = [
 ];
 
 /**
- * Load selected model from localStorage
- * Returns 'haiku' as default if no value is stored or value is invalid
+ * 从 localStorage 加载选定的模型
+ * 如果没有存储值或值无效，则返回 'haiku' 作为默认值
  */
 function loadModelFromStorage(): ClaudeModel {
   try {
@@ -76,25 +76,25 @@ function loadModelFromStorage(): ClaudeModel {
       return saved;
     }
   } catch {
-    // localStorage may not be available in some contexts
+    // localStorage 可能在某些上下文中不可用
   }
-  return 'haiku'; // Default
+  return 'haiku'; // 默认
 }
 
 /**
- * Save selected model to localStorage
+ * 将选定的模型保存到 localStorage
  */
 function saveModelToStorage(model: ClaudeModel): void {
   try {
     localStorage.setItem(MODEL_STORAGE_KEY, model);
   } catch {
-    // localStorage may not be available in some contexts
+    // localStorage 可能在某些上下文中不可用
   }
 }
 
 /**
- * Load allowed tools from localStorage
- * Returns DEFAULT_ALLOWED_TOOLS if no value is stored or value is invalid
+ * 从 localStorage 加载允许的工具
+ * 如果没有存储值或值无效，则返回 DEFAULT_ALLOWED_TOOLS
  */
 function loadAllowedToolsFromStorage(): string[] {
   try {
@@ -106,40 +106,40 @@ function loadAllowedToolsFromStorage(): string[] {
       }
     }
   } catch {
-    // localStorage may not be available or JSON parse failed
+    // localStorage 可能不可用或 JSON 解析失败
   }
   return DEFAULT_ALLOWED_TOOLS;
 }
 
 /**
- * Save allowed tools to localStorage
+ * 将允许的工具保存到 localStorage
  */
 function saveAllowedToolsToStorage(tools: string[]): void {
   try {
     localStorage.setItem(ALLOWED_TOOLS_STORAGE_KEY, JSON.stringify(tools));
   } catch {
-    // localStorage may not be available in some contexts
+    // localStorage 可能在某些上下文中不可用
   }
 }
 
 // ============================================================================
-// Session Status Type
+// 会话状态类型
 // ============================================================================
 
 /**
- * Session status for display in UI
- * - 'none': No session (new conversation, no prior context)
- * - 'connected': sessionId exists and is valid (session continuing)
- * - 'reconnected': Session fallback occurred (previous session expired)
+ * UI 中显示的会话状态
+ * - 'none': 无会话（新对话，无先前上下文）
+ * - 'connected': sessionId 存在且有效（会话继续）
+ * - 'reconnected': 发生会话回退（先前会话已过期）
  */
 export type SessionStatus = 'none' | 'connected' | 'reconnected';
 
 // ============================================================================
-// Store State Interface
+// 存储状态接口
 // ============================================================================
 
 interface RefinementStore {
-  // State
+  // 状态
   isOpen: boolean;
   conversationHistory: ConversationHistory | null;
   isProcessing: boolean;
@@ -150,14 +150,14 @@ interface RefinementStore {
   selectedModel: ClaudeModel;
   allowedTools: string[];
 
-  // Session Status
+  // 会话状态
   sessionStatus: SessionStatus;
 
-  // SubAgentFlow Refinement State
+  // SubAgentFlow 改进状态
   targetType: 'workflow' | 'subAgentFlow';
   targetSubAgentFlowId: string | null;
 
-  // Actions
+  // 操作
   openChat: () => void;
   closeChat: () => void;
   toggleChat: () => void;
@@ -182,22 +182,22 @@ interface RefinementStore {
   ) => void;
   handleRefinementFailed: () => void;
   /**
-   * Finish processing without replacing conversation history.
-   * Use this when frontend has already managed messages (e.g., streaming with explanatory text).
-   * Optionally accepts sessionId to persist for session continuation.
-   * @param sessionId - New session ID from CLI
-   * @param sessionReconnected - Whether session fallback occurred
+   * 完成处理而不替换对话历史记录。
+   * 当前端已经管理了消息时使用此方法（例如，带有解释文本的流式传输）。
+   * 可选地接受 sessionId 以持久化会话继续。
+   * @param sessionId - 来自 CLI 的新会话 ID
+   * @param sessionReconnected - 是否发生了会话回退
    */
   finishProcessing: (sessionId?: string, sessionReconnected?: boolean) => void;
   clearHistory: () => void;
 
-  // Session Status Actions
+  // 会话状态操作
   /**
-   * Set session status to 'reconnected' (called when session fallback occurred)
+   * 将会话状态设置为 'reconnected'（在发生会话回退时调用）
    */
   setSessionReconnected: () => void;
   /**
-   * Clear session status (called when history is cleared)
+   * 清除会话状态（在清除历史记录时调用）
    */
   clearSessionStatus: () => void;
 

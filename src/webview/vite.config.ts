@@ -1,8 +1,8 @@
 /**
- * Claude Code Workflow Studio - Vite Configuration
+ * Claude Code Workflow Studio - Vite 配置
  *
- * Vite build configuration for the Webview UI
- * Based on: /specs/001-cc-wf-studio/plan.md
+ * Webview UI 的 Vite 构建配置
+ * 基于: /specs/001-cc-wf-studio/plan.md
  */
 
 import { resolve } from 'node:path';
@@ -25,22 +25,22 @@ export default defineConfig({
         assetFileNames: 'assets/[name].[ext]',
       },
     },
-    // Generate sourcemaps for debugging
+    // 生成源映射用于调试
     sourcemap: true,
-    // Target modern browsers (VSCode uses Electron)
+    // 目标现代浏览器（VSCode 使用 Electron）
     target: 'esnext',
     minify: 'esbuild',
-    // Increase chunk size warning limit to 1000 kB (VSCode extension context)
+    // 将块大小警告限制提高到 1000 kB（VSCode 扩展上下文）
     chunkSizeWarningLimit: 1000,
   },
-  // Resolve configuration
+  // 解析配置
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
       '@shared': resolve(__dirname, '../shared'),
     },
   },
-  // Development server configuration
+  // 开发服务器配置
   server: {
     port: 5173,
     strictPort: true,

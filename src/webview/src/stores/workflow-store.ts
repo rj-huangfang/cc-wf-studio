@@ -1,8 +1,8 @@
 /**
- * Claude Code Workflow Studio - Workflow State Store
+ * Claude Code Workflow Studio - 工作流状态存储
  *
- * Zustand store for managing workflow state (nodes and edges)
- * Based on: /specs/001-cc-wf-studio/research.md section 3.4
+ * 用于管理工作流状态（节点和边）的 Zustand 存储
+ * 基于: /specs/001-cc-wf-studio/research.md section 3.4
  */
 
 import type { McpNodeData } from '@shared/types/mcp-node';
@@ -24,29 +24,29 @@ import { addEdge, applyEdgeChanges, applyNodeChanges } from 'reactflow';
 import { create } from 'zustand';
 
 // ============================================================================
-// Store State Interface
+// 存储状态接口
 // ============================================================================
 
 /**
- * Canvas interaction mode
- * - pan: Hand tool mode (drag to pan canvas, Ctrl+drag to select)
- * - selection: Selection mode (drag to select, Ctrl+drag to pan)
+ * 画布交互模式
+ * - pan: 手形工具模式（拖动以平移画布，Ctrl+拖动以选择）
+ * - selection: 选择模式（拖动以选择，Ctrl+拖动以平移）
  */
 export type InteractionMode = 'pan' | 'selection';
 
 /**
- * Snapshot of main workflow state for restoration after Sub-Agent Flow editing
+ * 主工作流状态快照，用于 Sub-Agent Flow 编辑后恢复
  */
 interface MainWorkflowSnapshot {
   nodes: Node[];
   edges: Edge[];
   selectedNodeId: string | null;
-  /** True if this is a new Sub-Agent Flow creation (not editing existing) */
+  /** 如果这是新创建的 Sub-Agent Flow（不是编辑现有的），则为 true */
   isNewSubAgentFlow: boolean;
 }
 
 interface WorkflowStore {
-  // State
+  // 状态
   nodes: Node[];
   edges: Edge[];
   selectedNodeId: string | null;
@@ -59,21 +59,21 @@ interface WorkflowStore {
   isMinimapVisible: boolean;
   isDescriptionPanelVisible: boolean;
   isFocusMode: boolean;
-  /** Slash Command export options (context, model, hooks) */
+  /** Slash 命令导出选项（上下文、模型、钩子） */
   slashCommandOptions: SlashCommandOptions;
   lastAddedNodeId: string | null;
 
-  // Sub-Agent Flow State (Feature: 089-subworkflow)
+  // Sub-Agent Flow 状态 (Feature: 089-subworkflow)
   subAgentFlows: SubAgentFlow[];
   activeSubAgentFlowId: string | null;
   mainWorkflowSnapshot: MainWorkflowSnapshot | null;
 
-  // React Flow Change Handlers
+  // React Flow 变更处理器
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
 
-  // Setters
+  // 设置器
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
   setSelectedNodeId: (id: string | null) => void;
@@ -94,7 +94,7 @@ interface WorkflowStore {
   removeHookEntry: (hookType: HookType, entryIndex: number) => void;
   updateHookEntry: (hookType: HookType, entryIndex: number, entry: Partial<HookEntry>) => void;
 
-  // Custom Actions
+  // 自定义操作
   updateNodeData: (nodeId: string, data: Partial<unknown>) => void;
   addNode: (node: Node) => void;
   clearLastAddedNodeId: () => void;
@@ -106,10 +106,10 @@ interface WorkflowStore {
   addGeneratedWorkflow: (workflow: Workflow) => void;
   updateWorkflow: (workflow: Workflow) => void;
   setActiveWorkflow: (workflow: Workflow) => void; // Phase 3.12
-  updateActiveWorkflowMetadata: (updates: Partial<Workflow>) => void; // Update activeWorkflow without changing canvas
-  ensureActiveWorkflow: () => void; // Ensure activeWorkflow exists (create from canvas if null)
+  updateActiveWorkflowMetadata: (updates: Partial<Workflow>) => void; // 更新 activeWorkflow 而不改变画布
+  ensureActiveWorkflow: () => void; // 确保 activeWorkflow 存在（如果为 null 则从画布创建）
 
-  // Sub-Agent Flow Actions (Feature: 089-subworkflow)
+  // Sub-Agent Flow 操作 (Feature: 089-subworkflow)
   addSubAgentFlow: (subAgentFlow: SubAgentFlow) => void;
   removeSubAgentFlow: (id: string) => void;
   updateSubAgentFlow: (id: string, updates: Partial<SubAgentFlow>) => void;
@@ -119,12 +119,12 @@ interface WorkflowStore {
 }
 
 // ============================================================================
-// Store Implementation
+// 存储实现
 // ============================================================================
 
 /**
- * デフォルトのStartノード
- * ワークフローは常にStartノードから始まる
+ * 默认的 Start 节点
+ * 工作流始终从 Start 节点开始
  */
 const DEFAULT_START_NODE: Node = {
   id: 'start-node-default',
@@ -134,8 +134,8 @@ const DEFAULT_START_NODE: Node = {
 };
 
 /**
- * デフォルトのEndノード
- * ワークフローは常にEndノードで終わる
+ * 默认的 End 节点
+ * 工作流始终在 End 节点结束
  */
 const DEFAULT_END_NODE: Node = {
   id: 'end-node-default',
@@ -145,8 +145,8 @@ const DEFAULT_END_NODE: Node = {
 };
 
 /**
- * Phase 3.12: 空のワークフローを生成するヘルパー関数
- * StartノードとEndノードのみを持つ最小限のワークフローを作成
+ * Phase 3.12: 生成空工作流的辅助函数
+ * 创建仅包含 Start 和 End 节点的最小工作流
  */
 export function createEmptyWorkflow(): Workflow {
   const now = new Date();
@@ -180,17 +180,17 @@ export function createEmptyWorkflow(): Workflow {
 }
 
 /**
- * Phase 3.13: キャンバスの実際の状態からワークフローを生成するヘルパー関数
- * React FlowのNode/EdgeをWorkflow型に変換する
+ * Phase 3.13: 从画布的实际状态生成工作流的辅助函数
+ * 将 React Flow 的 Node/Edge 转换为 Workflow 类型
  *
- * @param nodes - React Flowのノード配列
- * @param edges - React Flowのエッジ配列
- * @returns Workflow - 生成されたワークフローオブジェクト
+ * @param nodes - React Flow 的节点数组
+ * @param edges - React Flow 的边数组
+ * @returns Workflow - 生成的工作流对象
  */
 export function createWorkflowFromCanvas(nodes: Node[], edges: Edge[]): Workflow {
   const now = new Date();
 
-  // ノードが全くない場合はデフォルトのStart/Endノードを含める
+  // 如果完全没有节点，则包含默认的 Start/End 节点
   let workflowNodes: WorkflowNode[];
   if (nodes.length === 0) {
     workflowNodes = [
@@ -210,7 +210,7 @@ export function createWorkflowFromCanvas(nodes: Node[], edges: Edge[]): Workflow
       },
     ];
   } else {
-    // React FlowのNodeをWorkflowNodeに変換
+    // 将 React Flow 的 Node 转换为 WorkflowNode
     workflowNodes = nodes.map((node) => ({
       id: node.id,
       name: node.data?.label || node.id,
@@ -220,7 +220,7 @@ export function createWorkflowFromCanvas(nodes: Node[], edges: Edge[]): Workflow
     })) as WorkflowNode[];
   }
 
-  // React FlowのEdgeをConnectionに変換
+  // 将 React Flow 的 Edge 转换为 Connection
   const connections = edges.map((edge) => ({
     id: edge.id,
     from: edge.source,
@@ -244,27 +244,27 @@ export function createWorkflowFromCanvas(nodes: Node[], edges: Edge[]): Workflow
 }
 
 export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
-  // Initial State - デフォルトでStartノードとEndノードを含む
+  // 初始状态 - 默认包含 Start 和 End 节点
   nodes: [DEFAULT_START_NODE, DEFAULT_END_NODE],
   edges: [],
   selectedNodeId: null,
   pendingDeleteNodeIds: [],
   activeWorkflow: null,
-  interactionMode: 'pan', // Default: pan mode
-  workflowName: 'my-workflow', // Default workflow name
-  workflowDescription: '', // Default workflow description
-  isPropertyOverlayOpen: true, // Property overlay is open by default
+  interactionMode: 'pan', // 默认: 平移模式
+  workflowName: 'my-workflow', // 默认工作流名称
+  workflowDescription: '', // 默认工作流描述
+  isPropertyOverlayOpen: true, // 属性覆盖层默认打开
   isMinimapVisible: (() => {
     const saved = localStorage.getItem('cc-wf-studio.minimapVisible');
-    return saved !== null ? saved === 'true' : true; // Default: visible
+    return saved !== null ? saved === 'true' : true; // 默认: 可见
   })(),
   isDescriptionPanelVisible: (() => {
     const saved = localStorage.getItem('cc-wf-studio.descriptionPanelVisible');
-    return saved !== null ? saved === 'true' : false; // Default: collapsed
+    return saved !== null ? saved === 'true' : false; // 默认: 折叠
   })(),
   isFocusMode: (() => {
     const saved = localStorage.getItem('cc-wf-studio.focusMode');
-    return saved !== null ? saved === 'true' : false; // Default: off
+    return saved !== null ? saved === 'true' : false; // 默认: 关闭
   })(),
   slashCommandOptions: {
     context: 'default',
@@ -273,24 +273,24 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   },
   lastAddedNodeId: null,
 
-  // Sub-Agent Flow Initial State (Feature: 089-subworkflow)
+  // Sub-Agent Flow 初始状态 (Feature: 089-subworkflow)
   subAgentFlows: [],
   activeSubAgentFlowId: null,
   mainWorkflowSnapshot: null,
 
-  // React Flow Change Handlers (integrates with React Flow's onChange events)
+  // React Flow 变更处理器（与 React Flow 的 onChange 事件集成）
   onNodesChange: (changes) => {
-    // Separate remove events from other changes
+    // 将删除事件与其他变更分开
     const removeChanges = changes.filter((change) => change.type === 'remove');
     const otherChanges = changes.filter((change) => change.type !== 'remove');
 
-    // Check if there are nodes to delete (excluding Start nodes)
+    // 检查是否有要删除的节点（不包括 Start 节点）
     if (removeChanges.length > 0) {
       const nodeIdsToDelete = removeChanges
         .map((change) => {
           if (change.type === 'remove') {
             const nodeToRemove = get().nodes.find((node) => node.id === change.id);
-            // Start nodeは削除不可
+            // Start 节点不可删除
             if (nodeToRemove?.type === 'start') {
               console.warn('Cannot remove Start node: Start node is required for workflow');
               return null;
@@ -301,14 +301,14 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         })
         .filter((id): id is string => id !== null);
 
-      // If there are nodes to delete, show confirmation dialog
+      // 如果有要删除的节点，显示确认对话框
       if (nodeIdsToDelete.length > 0) {
         set({ pendingDeleteNodeIds: nodeIdsToDelete });
-        // Don't apply remove changes yet - wait for confirmation
+        // 暂不应用删除变更 - 等待确认
       }
     }
 
-    // Apply all non-remove changes immediately
+    // 立即应用所有非删除变更
     if (otherChanges.length > 0) {
       set({
         nodes: applyNodeChanges(otherChanges, get().nodes),
@@ -328,13 +328,13 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     });
   },
 
-  // Setters
+  // 设置器
   setNodes: (nodes) => set({ nodes }),
 
   setEdges: (edges) => set({ edges }),
 
   setSelectedNodeId: (selectedNodeId) => {
-    // When a node is selected, auto-open the property overlay
+    // 当选择节点时，自动打开属性覆盖层
     if (selectedNodeId !== null) {
       set({ selectedNodeId, isPropertyOverlayOpen: true });
     } else {
