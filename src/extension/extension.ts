@@ -1,7 +1,7 @@
 /**
- * Claude Code Workflow Studio - Extension Entry Point
+ * Claude Code Workflow Studio - 扩展入口点
  *
- * Main activation and deactivation logic for the VSCode extension.
+ * VSCode 扩展的主要激活和停用逻辑。
  */
 
 import * as fs from 'node:fs/promises';
@@ -14,12 +14,12 @@ import { SlackApiService } from './services/slack-api-service';
 import { SlackTokenManager } from './utils/slack-token-manager';
 
 /**
- * Global Output Channel for logging
+ * 用于日志记录的全局输出通道
  */
 let outputChannel: vscode.OutputChannel | null = null;
 
 /**
- * Get the global output channel instance
+ * 获取全局输出通道实例
  */
 export function getOutputChannel(): vscode.OutputChannel {
   if (!outputChannel) {
@@ -29,11 +29,11 @@ export function getOutputChannel(): vscode.OutputChannel {
 }
 
 /**
- * Log a message to the output channel
+ * 将消息记录到输出通道
  *
- * @param level - Log level (INFO, WARN, ERROR)
- * @param message - Message to log
- * @param data - Optional additional data to log
+ * @param level - 日志级别 (INFO, WARN, ERROR)
+ * @param message - 要记录的消息
+ * @param data - 可选的额外数据
  */
 export function log(level: 'INFO' | 'WARN' | 'ERROR', message: string, data?: unknown): void {
   const timestamp = new Date().toISOString();
@@ -46,18 +46,17 @@ export function log(level: 'INFO' | 'WARN' | 'ERROR', message: string, data?: un
     }
   }
 
-  // Also log to console for debugging
+  // 同时输出到控制台用于调试
   console.log(logMessage, data ?? '');
 }
 
 /**
- * Clean up legacy BM25 index data from globalStorageUri
+ * 从 globalStorageUri 清理遗留的 BM25 索引数据
  *
- * This function removes the old BM25 codebase index data that was stored
- * when the BM25 search feature was active. The feature has been removed
- * and this cleanup ensures no orphaned data remains on user devices.
+ * 此函数删除 BM25 搜索功能启用时存储的旧代码库索引数据。
+ * 该功能已被移除，此清理确保用户设备上不会残留孤立数据。
  *
- * @param context - Extension context containing globalStorageUri
+ * @param context - 包含 globalStorageUri 的扩展上下文
  */
 async function cleanupLegacyBM25Index(context: vscode.ExtensionContext): Promise<void> {
   try {
@@ -68,21 +67,21 @@ async function cleanupLegacyBM25Index(context: vscode.ExtensionContext): Promise
 
     const indexesDir = path.join(context.globalStorageUri.fsPath, 'indexes');
 
-    // Check if the indexes directory exists
+    // 检查索引目录是否存在
     try {
       await fs.access(indexesDir);
     } catch {
-      // Directory doesn't exist, nothing to clean up
+      // 目录不存在，无需清理
       log('INFO', 'BM25 Cleanup: No legacy index data found');
       return;
     }
 
-    // Directory exists, remove it
+    // 目录存在，删除它
     log('INFO', 'BM25 Cleanup: Removing legacy index directory', { path: indexesDir });
     await fs.rm(indexesDir, { recursive: true, force: true });
     log('INFO', 'BM25 Cleanup: Successfully removed legacy index data');
   } catch (error) {
-    // Log error but don't prevent extension activation
+    // 记录错误但不阻止扩展激活
     log('ERROR', 'BM25 Cleanup: Failed to remove legacy index data', {
       error: error instanceof Error ? error.message : String(error),
     });
@@ -90,33 +89,33 @@ async function cleanupLegacyBM25Index(context: vscode.ExtensionContext): Promise
 }
 
 /**
- * Extension activation function
- * Called when the extension is activated (when the command is first invoked)
+ * 扩展激活函数
+ * 在扩展激活时调用（首次调用命令时）
  */
 export function activate(context: vscode.ExtensionContext): void {
-  // Create output channel
+  // 创建输出通道
   outputChannel = vscode.window.createOutputChannel('Claude Code Workflow Studio');
   context.subscriptions.push(outputChannel);
 
   log('INFO', 'Claude Code Workflow Studio is now active');
 
-  // Clean up legacy BM25 index data (fire-and-forget)
+  // 清理遗留的 BM25 索引数据（触发后不等待）
   cleanupLegacyBM25Index(context).catch((error) => {
     log('ERROR', 'BM25 Cleanup: Unexpected error during cleanup', { error });
   });
 
-  // Register commands
+  // 注册命令
   registerOpenEditorCommand(context);
 
-  // Register custom editor provider for workflow preview
+  // 注册工作流预览的自定义编辑器提供程序
   context.subscriptions.push(WorkflowPreviewEditorProvider.register(context));
 
-  // Register Slack import command (T031)
+  // 注册 Slack 导入命令 (T031)
   context.subscriptions.push(
     vscode.commands.registerCommand('claudeCodeWorkflowStudio.slack.importWorkflow', async () => {
       log('INFO', 'Slack: Import Workflow command invoked');
 
-      // Show input box for Slack file URL or ID
+      // 显示输入框以获取 Slack 文件 URL 或 ID
       const input = await vscode.window.showInputBox({
         prompt: 'Enter Slack file URL or file ID',
         placeHolder: 'https://files.slack.com/... or F0123456789',
@@ -129,15 +128,15 @@ export function activate(context: vscode.ExtensionContext): void {
 
       log('INFO', 'Slack import input received', { input });
 
-      // TODO: Parse URL and extract file ID, then trigger import
-      // For now, show error message
+      // TODO: 解析 URL 并提取文件 ID，然后触发导入
+      // 目前显示错误消息
       vscode.window.showErrorMessage(
         'Slack import via command is not fully implemented yet. Use the "Import to VS Code" button in Slack messages.'
       );
     })
   );
 
-  // Register Slack manual token connection command (T103)
+  // 注册 Slack 手动令牌连接命令 (T103)
   context.subscriptions.push(
     vscode.commands.registerCommand('claudeCodeWorkflowStudio.slack.connectManual', async () => {
       log('INFO', 'Slack: Connect Workspace (Manual Token) command invoked');
@@ -149,18 +148,18 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  // Register URI handler for deep links (vscode://cc-wf-studio/import?...)
+  // 注册 URI 处理器用于深度链接 (vscode://cc-wf-studio/import?...)
   context.subscriptions.push(
     vscode.window.registerUriHandler({
       handleUri(uri: vscode.Uri): void {
         log('INFO', 'URI handler invoked', { uri: uri.toString() });
 
-        // Parse URI path and query parameters
+        // 解析 URI 路径和查询参数
         const path = uri.path;
         const query = new URLSearchParams(uri.query);
 
         if (path === '/import') {
-          // Extract import parameters
+          // 提取导入参数
           const fileId = query.get('fileId');
           const channelId = query.get('channelId');
           const messageTs = query.get('messageTs');
@@ -168,7 +167,7 @@ export function activate(context: vscode.ExtensionContext): void {
           const workflowId = query.get('workflowId');
           const workspaceNameBase64 = query.get('workspaceName');
 
-          // Decode workspace name from Base64 if present
+          // 如果存在，从 Base64 解码工作区名称
           let workspaceName: string | undefined;
           if (workspaceNameBase64) {
             try {
@@ -199,7 +198,7 @@ export function activate(context: vscode.ExtensionContext): void {
             workspaceName,
           });
 
-          // Open editor with import parameters
+          // 使用导入参数打开编辑器
           vscode.commands
             .executeCommand('cc-wf-studio.openEditor', {
               fileId,
@@ -224,8 +223,8 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 /**
- * Extension deactivation function
- * Called when the extension is deactivated
+ * 扩展停用函数
+ * 在扩展停用时调用
  */
 export function deactivate(): void {
   log('INFO', 'Claude Code Workflow Studio is now deactivated');

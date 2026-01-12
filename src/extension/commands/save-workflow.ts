@@ -1,8 +1,8 @@
 /**
- * Claude Code Workflow Studio - Save Workflow Command
+ * Claude Code Workflow Studio - 保存工作流命令
  *
- * Handles saving workflow definitions to .vscode/workflows/
- * Based on: /specs/001-cc-wf-studio/contracts/extension-webview-api.md
+ * 处理将工作流定义保存到 .vscode/workflows/
+ * 基于: /specs/001-cc-wf-studio/contracts/extension-webview-api.md
  */
 
 import type { Webview } from 'vscode';
@@ -12,12 +12,12 @@ import type { Workflow } from '../../shared/types/workflow-definition';
 import type { FileService } from '../services/file-service';
 
 /**
- * Save workflow to file
+ * 将工作流保存到文件
  *
- * @param fileService - File service instance
- * @param webview - Webview to send response to
- * @param workflow - Workflow to save
- * @param requestId - Request ID for response matching
+ * @param fileService - 文件服务实例
+ * @param webview - 用于发送响应的 Webview
+ * @param workflow - 要保存的工作流
+ * @param requestId - 用于响应匹配的请求 ID
  */
 export async function saveWorkflow(
   fileService: FileService,
@@ -26,18 +26,18 @@ export async function saveWorkflow(
   requestId?: string
 ): Promise<void> {
   try {
-    // Ensure workflows directory exists
+    // 确保工作流目录存在
     await fileService.ensureWorkflowsDirectory();
 
-    // Validate workflow (basic checks)
+    // 验证工作流（基本检查）
     validateWorkflow(workflow);
 
-    // Get file path
+    // 获取文件路径
     const filePath = fileService.getWorkflowFilePath(workflow.name);
 
-    // Check if file already exists
+    // 检查文件是否已存在
     if (await fileService.fileExists(filePath)) {
-      // Show warning dialog for overwrite confirmation
+      // 显示警告对话框以确认覆盖
       const answer = await vscode.window.showWarningMessage(
         `Workflow "${workflow.name}" already exists.\n\nDo you want to overwrite it?`,
         { modal: true },
@@ -45,7 +45,7 @@ export async function saveWorkflow(
       );
 
       if (answer !== 'Overwrite') {
-        // User cancelled - send cancellation message (not an error)
+        // 用户取消 - 发送取消消息（不是错误）
         webview.postMessage({
           type: 'SAVE_CANCELLED',
           requestId,
@@ -54,13 +54,13 @@ export async function saveWorkflow(
       }
     }
 
-    // Serialize workflow to JSON with 2-space indentation
+    // 将工作流序列化为 JSON，使用 2 空格缩进
     const content = JSON.stringify(workflow, null, 2);
 
-    // Write to file
+    // 写入文件
     await fileService.writeFile(filePath, content);
 
-    // Send success message back to webview
+    // 将成功消息发送回 webview
     const payload: SaveSuccessPayload = {
       filePath,
       timestamp: new Date().toISOString(),
@@ -72,12 +72,12 @@ export async function saveWorkflow(
       payload,
     });
 
-    // Show success notification
+    // 显示成功通知
     vscode.window.showInformationMessage(`Workflow "${workflow.name}" saved successfully!`);
 
     console.log(`Workflow saved: ${workflow.name}`);
   } catch (error) {
-    // Send error message back to webview
+    // 将错误消息发送回 webview
     webview.postMessage({
       type: 'ERROR',
       requestId,
@@ -88,7 +88,7 @@ export async function saveWorkflow(
       },
     });
 
-    // Show error notification
+    // 显示错误通知
     vscode.window.showErrorMessage(
       `Failed to save workflow: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -96,13 +96,13 @@ export async function saveWorkflow(
 }
 
 /**
- * Validate workflow before saving
+ * 保存前验证工作流
  *
- * @param workflow - Workflow to validate
- * @throws Error if validation fails
+ * @param workflow - 要验证的工作流
+ * @throws 如果验证失败则抛出错误
  */
 function validateWorkflow(workflow: Workflow): void {
-  // Check required fields
+  // 检查必需字段
   if (!workflow.id) {
     throw new Error('Workflow ID is required');
   }
@@ -111,7 +111,7 @@ function validateWorkflow(workflow: Workflow): void {
     throw new Error('Workflow name is required');
   }
 
-  // Validate name format (lowercase, numbers, hyphen, underscore only)
+  // 验证名称格式（仅小写字母、数字、连字符、下划线）
   const namePattern = /^[a-z0-9_-]+$/;
   if (!namePattern.test(workflow.name)) {
     throw new Error(
@@ -119,18 +119,18 @@ function validateWorkflow(workflow: Workflow): void {
     );
   }
 
-  // Check name length (1-100 characters)
+  // 检查名称长度（1-100 个字符）
   if (workflow.name.length < 1 || workflow.name.length > 100) {
     throw new Error('Workflow name must be between 1 and 100 characters');
   }
 
-  // Validate version format (semantic versioning)
+  // 验证版本格式（语义化版本）
   const versionPattern = /^\d+\.\d+\.\d+$/;
   if (!workflow.version || !versionPattern.test(workflow.version)) {
     throw new Error('Workflow version must follow semantic versioning (e.g., 1.0.0)');
   }
 
-  // Check max nodes (50)
+  // 检查最大节点数（50）
   if (workflow.nodes.length > 50) {
     throw new Error('Workflow cannot have more than 50 nodes');
   }
