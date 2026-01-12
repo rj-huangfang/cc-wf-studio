@@ -1,7 +1,7 @@
 /**
- * Claude Code Workflow Studio - Export Workflow Command
+ * Claude Code Workflow Studio - 导出工作流命令
  *
- * Exports workflow to .claude format (agents/*.md and commands/*.md)
+ * 将工作流导出为 .claude 格式（agents/*.md 和 commands/*.md）
  */
 
 import * as path from 'node:path';
@@ -21,12 +21,12 @@ import type { FileService } from '../services/file-service';
 import { validateAIGeneratedWorkflow } from '../utils/validate-workflow';
 
 /**
- * Export workflow to .claude format
+ * 将工作流导出为 .claude 格式
  *
- * @param fileService - File service instance
- * @param webview - Webview to send response to
- * @param payload - Export workflow payload
- * @param requestId - Request ID for response matching
+ * @param fileService - 文件服务实例
+ * @param webview - 用于发送响应的 Webview
+ * @param payload - 导出工作流载荷
+ * @param requestId - 用于响应匹配的请求 ID
  */
 export async function handleExportWorkflow(
   fileService: FileService,
@@ -35,19 +35,19 @@ export async function handleExportWorkflow(
   requestId?: string
 ): Promise<void> {
   try {
-    // Validate workflow structure before export
+    // 导出前验证工作流结构
     const validationResult = validateAIGeneratedWorkflow(payload.workflow);
     if (!validationResult.valid) {
       const errorMessages = validationResult.errors.map((err) => err.message).join('\n');
       throw new Error(`Workflow validation failed:\n${errorMessages}`);
     }
 
-    // Check if files already exist (unless overwrite is confirmed)
+    // 检查文件是否已存在（除非已确认覆盖）
     if (!payload.overwriteExisting) {
       const existingFiles = await checkExistingFiles(payload.workflow, fileService);
 
       if (existingFiles.length > 0) {
-        // Show warning dialog for overwrite confirmation
+        // 显示警告对话框以确认覆盖
         const fileList = existingFiles.map((f) => `  - ${f}`).join('\n');
         const answer = await vscode.window.showWarningMessage(
           `The following files already exist:\n${fileList}\n\nDo you want to overwrite them?`,
@@ -56,7 +56,7 @@ export async function handleExportWorkflow(
         );
 
         if (answer !== 'Overwrite') {
-          // User cancelled - send cancellation message (not an error)
+          // 用户取消 - 发送取消消息（不是错误）
           webview.postMessage({
             type: 'EXPORT_CANCELLED',
             requestId,
@@ -66,10 +66,10 @@ export async function handleExportWorkflow(
       }
     }
 
-    // Export workflow
+    // 导出工作流
     const exportedFiles = await exportWorkflow(payload.workflow, fileService);
 
-    // Validate exported files
+    // 验证导出的文件
     const validationErrors: string[] = [];
     for (const filePath of exportedFiles) {
       try {
@@ -83,12 +83,12 @@ export async function handleExportWorkflow(
       }
     }
 
-    // If validation errors occurred, report them
+    // 如果发生验证错误，报告它们
     if (validationErrors.length > 0) {
       throw new Error(`Exported files have validation errors:\n${validationErrors.join('\n')}`);
     }
 
-    // Send success response
+    // 发送成功响应
     const successPayload: ExportSuccessPayload = {
       exportedFiles,
       timestamp: new Date().toISOString(),

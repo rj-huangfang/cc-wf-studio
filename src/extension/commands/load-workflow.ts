@@ -1,7 +1,7 @@
 /**
- * Claude Code Workflow Studio - Load Workflow Command
+ * Claude Code Workflow Studio - 加载工作流命令
  *
- * Loads a specific workflow file and sends it to the Webview
+ * 加载特定的工作流文件并发送到 Webview
  */
 
 import type { Webview } from 'vscode';
@@ -10,12 +10,12 @@ import type { FileService } from '../services/file-service';
 import { migrateWorkflow } from '../utils/migrate-workflow';
 
 /**
- * Load a specific workflow and send to webview
+ * 加载特定工作流并发送到 webview
  *
- * @param fileService - File service instance
- * @param webview - Webview to send response to
- * @param workflowId - Workflow ID (filename without .json extension)
- * @param requestId - Request ID for response matching
+ * @param fileService - 文件服务实例
+ * @param webview - 用于发送响应的 Webview
+ * @param workflowId - 工作流 ID（不带 .json 扩展名的文件名）
+ * @param requestId - 用于响应匹配的请求 ID
  */
 export async function loadWorkflow(
   fileService: FileService,
@@ -24,10 +24,10 @@ export async function loadWorkflow(
   requestId?: string
 ): Promise<void> {
   try {
-    // Get workflow file path
+    // 获取工作流文件路径
     const filePath = fileService.getWorkflowFilePath(workflowId);
 
-    // Check if file exists
+    // 检查文件是否存在
     const exists = await fileService.fileExists(filePath);
     if (!exists) {
       webview.postMessage({
@@ -41,14 +41,14 @@ export async function loadWorkflow(
       return;
     }
 
-    // Read and parse workflow file
+    // 读取并解析工作流文件
     const content = await fileService.readFile(filePath);
     const parsedWorkflow = JSON.parse(content);
 
-    // Apply migrations for backward compatibility
+    // 应用迁移以实现向后兼容
     const workflow = migrateWorkflow(parsedWorkflow);
 
-    // Send success response
+    // 发送成功响应
     const payload: LoadWorkflowPayload = { workflow };
     webview.postMessage({
       type: 'LOAD_WORKFLOW',
@@ -58,7 +58,7 @@ export async function loadWorkflow(
 
     console.log(`Workflow loaded: ${workflowId}`);
   } catch (error) {
-    // Send error response
+    // 发送错误响应
     webview.postMessage({
       type: 'ERROR',
       requestId,
