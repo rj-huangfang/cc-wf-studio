@@ -1,7 +1,7 @@
 # Claude Code Workflow Studio
 
 <p align="center">
-  <a href="./README.md">English</a> | <a href="./README.zh-CN.md">简体中文</a>
+  <a href="./README-EN.md">English</a> | <a href="./README.md">简体中文</a>
 </p>
 
 <p align="center">
